@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  addresses          String[]
+  email              String        @unique
+  password           String
+  secondary_password String
+  key_created        Boolean
+  encrypt_id         String
+  secret_key         String
+  created_at         DateTime      @default(now())
+  latest_login       DateTime      @default(now())
+  google_secret      String?
+  point              Int?
+  point_updated      DateTime?
+  virtual            Boolean?
+  TaskHistory        TaskHistory[]
+}
+
+enum RewardType {
+  FOREVER
+}
+
+model Reward {
+  oid   String     @id @default(auto()) @map("_id") @db.ObjectId
+  type  RewardType
+  point Int?
+  intro String
+  name  String
+  task  Task[]
+}
+
+type Step {
+  title String
+  desc  String
+  link  String?
+}
+
+enum TaskVerify {
+  REGIST
+  BIND_EMAIL
+  ASSET
+  CEX
+  CHECK_IN
+}
+
+
+model Task {
+  oid         String        @id @default(auto()) @map("_id") @db.ObjectId
+  reward      Reward        @relation(fields: [reward_id], references: [oid], onDelete: NoAction)
+  reward_id   String        @db.ObjectId
+  title       String
+  intro       String
+  step        Step[]
+  point       Int?
+  limit       Int?
+  expired_at  DateTime?
+  verify_id   TaskVerify
+  taskHistory TaskHistory[]
+  repeat     Boolean?
+  repeat_interval String?
+}
+
+model TaskHistory {
+  oid         String   @id @default(auto()) @map("_id") @db.ObjectId
+  uid         String
+  task_id     String
+  complete_at DateTime
+
+  task Task @relation(fields: [task_id], references: [oid], onDelete: NoAction)
+
+  user User @relation(fields: [uid], references: [id], onDelete: NoAction)
+
+}
+
+enum Role {
+    ADMIN
+    AUTHOR
+    VISITER
+}
+
+model Admin {
+    id String   @id @default(auto()) @map("_id") @db.ObjectId 
+    username String
+    email String @unique
+    role Role
+    password String
+    avatar String?
+}

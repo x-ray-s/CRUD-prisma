@@ -1,0 +1,15 @@
+{
+    "trailingComma": "es5",
+    "semi": false,
+    "singleQuote": true,
+    "importOrder": [
+        "^dotenv(.*)$",
+        "^@core/(.*)$",
+        "<THIRD_PARTY_MODULES>",
+        "^@princess_war/(.*)$",
+        "^@root/(.*)$",
+        "^[./]"
+    ],
+    "importOrderSeparation": true,
+    "importOrderSortSpecifiers": true
+}
