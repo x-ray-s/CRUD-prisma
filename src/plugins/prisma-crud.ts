@@ -8,25 +8,8 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import Controller from './crud/controller'
-
-type Actions = 'create' | 'list' | 'update' | 'delete' | 'read'
-
-type Visible = Partial<Record<Actions, boolean>>
-
-type PropertyConfig = {
-    /** field visible in frontend */
-    visible?: boolean | Visible
-    /** format field value in frontend */
-    format?: (v?: string) => string
-    /** field alias */
-    alias?: string
-    /**
-     * render upload component in frontend
-     */
-    upload?: {
-        type: string
-    }
-}
+import { Property } from './crud/config'
+import type { PropertyConfig } from './crud/config'
 
 type ActionBody<T> = {
     payload: T
@@ -48,56 +31,6 @@ type FieldsConfig = {
         [key: string]: PropertyConfig
     }
     actions?: ActionConfig
-}
-
-class ConfigHelper {
-    config: FieldsConfig
-    constructor(config: FieldsConfig) {
-        this.config = config
-    }
-    excludeKeys(actions?: Actions): string[] {
-        const properties = this.config.property
-        return _.chain(properties)
-            .keys()
-            .filter((key: string) => {
-                const property = properties[key]
-                if (property.visible && actions) {
-                    return property.visible?.[actions] === false
-                }
-
-                return property.visible === false
-            })
-            .value()
-    }
-}
-
-class Property {
-    field: DMMF.Field
-    config: FieldsConfig
-    constructor(field: DMMF.Field, config: FieldsConfig) {
-        this.field = field
-        this.config = config
-    }
-    isHidden() {
-        return this.config.property[this.field.name]?.visible === false
-    }
-    isActionHidden(actions: Actions) {
-        if (this.isHidden()) {
-            return this.isHidden()
-        }
-        return (
-            this.config.property[this.field.name]?.visible?.[actions] === false
-        )
-    }
-    isRelation() {
-        return Boolean(this.field.relationName)
-    }
-    alias() {
-        return this.config.property[this.field.name]?.alias
-    }
-    isUpload() {
-        return this.config.property[this.field.name]?.upload
-    }
 }
 
 const localUploadProvider = async (filesMap: { [key: string]: any }) => {
@@ -142,7 +75,6 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
     })
 
     const controller = new Controller(model, config)
-    controller.head()
 
     const validate = joi.object(
         model.fields.reduce((prev, acc) => {
@@ -227,8 +159,9 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
 
                 const data = await localUploadProvider(uploadPayload)
 
-                await prisma[collection].create({
-                    data: { ...payload, ..._.mapValues(data, 'path') },
+                await controller.create({
+                    ...payload,
+                    ..._.mapValues(data, 'path'),
                 })
                 return h.response({}).code(201)
             },
@@ -238,14 +171,8 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             method: 'PATCH',
             path: `/admin/${collection}/{id}`,
             handler: async (request, h) => {
-                const payload = request.payload
-                const id = request.params.id
-                await prisma[collection].update({
-                    where: {
-                        id,
-                    },
-                    data: payload,
-                })
+                const { id } = request.params
+                await controller.update(id, _.omit(request.payload, 'id'))
                 return h.response({}).code(201)
             },
         },
@@ -254,12 +181,8 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             method: 'DELETE',
             path: `/admin/${collection}/{id}`,
             handler: async (request, h) => {
-                const id = request.params.id
-                await prisma[collection].delete({
-                    where: {
-                        id,
-                    },
-                })
+                const { id } = request.params
+                await controller.delete(id)
                 return h.response({}).code(201)
             },
         },
@@ -286,7 +209,6 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                  * filter visible is false or visible.list is false
                  * call format method on value
                  */
-                console.log(fields)
                 return {
                     list: list.map((i) => {
                         return Object.keys(i).reduce((prev, acc) => {
@@ -295,7 +217,6 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                             )
                             if (field) {
                                 const property = new Property(field, config)
-                                console.log(property)
 
                                 if (
                                     property.isHidden() ||
@@ -378,9 +299,7 @@ const plugin = {
                 config: {
                     property: {
                         avatar: {
-                            upload: {
-                                type: 'image',
-                            },
+                            component: 'upload',
                         },
                         password: {
                             visible: {

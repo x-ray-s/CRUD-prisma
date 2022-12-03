@@ -17,6 +17,7 @@ type EnumMap = {
 
 type HeadField = DMMF.Field & {
     alias?: string
+    component?: 'string'
 }
 
 type HeadResponseBody = {
@@ -67,7 +68,7 @@ class Controller {
         return _.omit(data, removeKeys)
     }
     async update(id: string, payload) {
-        prisma[this.name].update({
+        return prisma[this.name].update({
             where: {
                 id,
             },
@@ -89,10 +90,15 @@ class Controller {
 
         let fields = _.filter(
             this.fields,
-            (feild) => !removeKeys.includes(feild.name)
-        )
-        // 创建时过滤 id
-        if (actions === 'create') {
+            (field) => !removeKeys.includes(field.name)
+        ).map((field) => {
+            // 处理 component
+            const component = this.config.component(field.name)
+
+            return { ...field, component }
+        })
+        // 创建和修改时过滤 id
+        if (actions === 'create' || actions === 'update') {
             fields = _.filter(fields, (feild) => !feild.isId)
         }
 

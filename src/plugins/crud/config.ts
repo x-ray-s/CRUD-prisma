@@ -5,7 +5,7 @@ export type Actions = 'create' | 'list' | 'update' | 'delete' | 'read'
 
 type Visible = Partial<Record<Actions, boolean>>
 
-type PropertyConfig = {
+export type PropertyConfig = {
     /** field visible in frontend */
     visible?: boolean | Visible
     /** format field value in frontend */
@@ -15,9 +15,7 @@ type PropertyConfig = {
     /**
      * render upload component in frontend
      */
-    upload?: {
-        type: string
-    }
+    component?: 'upload'
 }
 
 interface RequestPayload {
@@ -74,13 +72,37 @@ export class Configuration {
     alias(key) {
         return this.getProperty(key)?.alias
     }
+
+    component(key) {
+        return this.getProperty(key)?.component
+    }
 }
 
-class Property {
+export class Property {
     field: DMMF.Field
-    config: Configuration
+    config: FieldsConfig
     constructor(field: DMMF.Field, config: FieldsConfig) {
         this.field = field
-        this.config = new Configuration(config)
+        this.config = config
+    }
+    isHidden() {
+        return this.config.property[this.field.name]?.visible === false
+    }
+    isActionHidden(actions: Actions) {
+        if (this.isHidden()) {
+            return this.isHidden()
+        }
+        return (
+            this.config.property[this.field.name]?.visible?.[actions] === false
+        )
+    }
+    isRelation() {
+        return Boolean(this.field.relationName)
+    }
+    alias() {
+        return this.config.property[this.field.name]?.alias
+    }
+    isUpload() {
+        return this.config.property[this.field.name]?.component === 'upload'
     }
 }
