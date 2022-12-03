@@ -123,14 +123,14 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 return controller.read(id)
             },
         },
-
         {
             method: 'POST',
-            path: `/admin/${collection}`,
+            path: `/admin/${collection}/upload`,
             options: {
                 validate: {
                     payload: validate,
                     failAction: async (request, h, err) => {
+                        console.log(request.payload)
                         request.log('error', err)
                         throw err
                     },
@@ -143,6 +143,7 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             },
             handler: async (request, h) => {
                 let payload = request.payload
+                console.log(request.payload)
                 if (config.actions?.create) {
                     const { payload: _payload } = await config.actions.create(
                         payload
@@ -168,11 +169,29 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         },
 
         {
+            method: 'POST',
+            path: `/admin/${collection}`,
+            options: {
+                validate: {
+                    payload: validate,
+                    failAction: async (request, h, err) => {
+                        request.log('error', err)
+                        throw err
+                    },
+                },
+            },
+            handler: async (request, h) => {
+                await controller.create(request.payload)
+                return h.response({}).code(201)
+            },
+        },
+
+        {
             method: 'PATCH',
             path: `/admin/${collection}/{id}`,
             handler: async (request, h) => {
                 const { id } = request.params
-                await controller.update(id, _.omit(request.payload, 'id'))
+                await controller.update(id, request.payload)
                 return h.response({}).code(201)
             },
         },
@@ -194,55 +213,10 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 const { page = 1 } = request.query
                 const size = 10
 
-                const list = await prisma[collection].findMany({
-                    take: size,
-                    skip: size * (page - 1),
-                    select: fields
-                        .map((i) => i.name)
-                        .reduce((prev, acc) => {
-                            prev[acc] = true
-                            return prev
-                        }, {}),
+                return await controller.list({
+                    page,
+                    size,
                 })
-                const count = await prisma[collection].count()
-                /**
-                 * filter visible is false or visible.list is false
-                 * call format method on value
-                 */
-                return {
-                    list: list.map((i) => {
-                        return Object.keys(i).reduce((prev, acc) => {
-                            const field = fields.find(
-                                (field) => field.name === acc
-                            )
-                            if (field) {
-                                const property = new Property(field, config)
-
-                                if (
-                                    property.isHidden() ||
-                                    property.isActionHidden('list')
-                                ) {
-                                    delete prev[acc]
-                                    return prev
-                                }
-                            }
-
-                            // if (typeof property === 'object') {
-                            //     if (property) {
-                            //     }
-                            //     // // format
-                            //     // if (property.format) {
-                            //     //     prev[acc] = (
-                            //     //         config.property[acc] as any
-                            //     //     ).format(i[acc])
-                            //     // }
-                            // }
-
-                            return prev
-                        }, i as any)
-                    }),
-                    page: Math.ceil(count / size),
-                }
             },
         },
         {

@@ -76,6 +76,10 @@ export class Configuration {
     component(key) {
         return this.getProperty(key)?.component
     }
+
+    getActions() {
+        return this.config.actions || {}
+    }
 }
 
 export class Property {

@@ -45,14 +45,22 @@ class Controller {
             take: size,
             skip: size * (page - 1),
         })
+        const removeKeys = this.config.visibleExcludeKeys('list')
         const count = await prisma[this.name].count()
         return {
-            data,
+            data: _.map(data, (i) => _.omit(i, removeKeys)),
             page: Math.ceil(count / size),
         }
     }
     async create(data) {
-        prisma[this.name].create({
+        const { create } = this.config.getActions()
+        if (create) {
+            const { payload } = await create(data)
+            return prisma[this.name].create({
+                data: payload,
+            })
+        }
+        return prisma[this.name].create({
             data,
         })
     }
@@ -72,11 +80,11 @@ class Controller {
             where: {
                 id,
             },
-            data: payload,
+            data: _.omit(payload, 'id'),
         })
     }
     async delete(id: string) {
-        prisma[this.name].delete({
+        return prisma[this.name].delete({
             where: {
                 id,
             },
