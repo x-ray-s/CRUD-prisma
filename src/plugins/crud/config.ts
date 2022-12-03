@@ -80,6 +80,18 @@ export class Configuration {
     getActions() {
         return this.config.actions || {}
     }
+
+    componentKeys() {
+        const properties = this.config.property
+        return _.chain(properties)
+            .keys()
+            .filter((key: string) => {
+                const property = properties[key]
+
+                return property.component
+            })
+            .value()
+    }
 }
 
 export class Property {

@@ -7,6 +7,18 @@ const routerPlugin: Hapi.Plugin<null> = {
     register: async function (server: Hapi.Server) {
         const routes = await importRootFiles(__dirname)
 
+        server.route({
+            method: 'GET',
+            path: '/uploads/{param*}',
+            handler: {
+                directory: {
+                    path: '.',
+                    redirectToSlash: true,
+                    index: true,
+                },
+            },
+        })
+
         server.route([
             ..._.flattenDeep(
                 routes.map((i) => {

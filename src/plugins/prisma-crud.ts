@@ -8,7 +8,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import Controller from './crud/controller'
-import { Property } from './crud/config'
+import { Configuration } from './crud/config'
 import type { PropertyConfig } from './crud/config'
 
 type ActionBody<T> = {
@@ -33,7 +33,14 @@ type FieldsConfig = {
     actions?: ActionConfig
 }
 
-const localUploadProvider = async (filesMap: { [key: string]: any }) => {
+const localUploadProvider = async (filesMap: {
+    [key: string]: any
+}): Promise<{
+    [key: string]: {
+        key: string
+        path: string
+    }
+}> => {
     const r = {}
 
     await Promise.all(
@@ -63,18 +70,9 @@ const localUploadProvider = async (filesMap: { [key: string]: any }) => {
 function handler(model: DMMF.Model, config: FieldsConfig) {
     const collection = model.name.toLowerCase()
 
-    const map = new Map()
-
-    const fields = model.fields.map((i) => {
-        const property = new Property(i, config)
-        map.set(i.name, property)
-        if (property.alias()) {
-            i.alias = property.alias()
-        }
-        return i
-    })
-
     const controller = new Controller(model, config)
+    const configure = new Configuration(config)
+    const customComponentKeys = configure.componentKeys()
 
     const validate = joi.object(
         model.fields.reduce((prev, acc) => {
@@ -85,7 +83,7 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 return prev
             }
 
-            if (map.get(key).isUpload()) {
+            if (customComponentKeys.includes(acc.name)) {
                 // TODO: Readable validate
                 chain = joi.any()
             } else if (acc.type === 'Boolean') {
@@ -110,10 +108,6 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         }, {})
     )
 
-    const uploadFields = model.fields.filter((i) => {
-        return map.get(i.name).isUpload()
-    })
-
     return [
         {
             method: 'GET',
@@ -130,7 +124,6 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 validate: {
                     payload: validate,
                     failAction: async (request, h, err) => {
-                        console.log(request.payload)
                         request.log('error', err)
                         throw err
                     },
@@ -143,20 +136,16 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             },
             handler: async (request, h) => {
                 let payload = request.payload
-                console.log(request.payload)
-                if (config.actions?.create) {
-                    const { payload: _payload } = await config.actions.create(
-                        payload
-                    )
-                    payload = _payload
-                }
 
-                const uploadPayload = uploadFields.reduce((prev, acc) => {
-                    if (request.payload[acc.name]) {
-                        prev[acc.name] = request.payload[acc.name]
-                    }
-                    return prev
-                }, {})
+                const uploadPayload = customComponentKeys.reduce(
+                    (prev, acc) => {
+                        if (request.payload[acc]) {
+                            prev[acc] = request.payload[acc]
+                        }
+                        return prev
+                    },
+                    {}
+                )
 
                 const data = await localUploadProvider(uploadPayload)
 
@@ -280,6 +269,9 @@ const plugin = {
                                 list: false,
                                 read: false,
                             },
+                        },
+                        role: {
+                            alias: '权限',
                         },
                     },
                     actions: {

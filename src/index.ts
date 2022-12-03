@@ -1,9 +1,9 @@
 import Hapi from '@hapi/hapi'
+import inert from '@hapi/inert'
+import path from 'path'
 
 import plugins from './plugins'
 import router from './routes'
-import os from 'os'
-
 const server = Hapi.server({
     port: 4000,
     routes: {
@@ -13,6 +13,9 @@ const server = Hapi.server({
                 'http://127.0.0.1:3000',
                 'http://localhost:3001',
             ],
+        },
+        files: {
+            relativeTo: path.join(__dirname, '../uploads'),
         },
     },
 })
@@ -26,7 +29,8 @@ server.route({
 })
 
 const start = async () => {
-    await server.register([...plugins, router])
+    await server.register([...plugins, inert, router])
+
     await server.start()
     console.log('start')
 }

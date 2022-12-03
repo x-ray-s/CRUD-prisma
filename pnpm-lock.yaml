@@ -3,6 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@hapi/boom': ^10.0.0
   '@hapi/hapi': ^20.2.2
+  '@hapi/inert': ^7.0.0
   '@hapi/jwt': ^3.0.0
   '@prisma/client': ^4.4.0
   '@trivago/prettier-plugin-sort-imports': ^3.3.0
@@ -22,6 +23,7 @@ specifiers:
 dependencies:
   '@hapi/boom': 10.0.0
   '@hapi/hapi': 20.2.2
+  '@hapi/inert': 7.0.0
   '@hapi/jwt': 3.0.0
   '@prisma/client': 4.4.0_prisma@4.4.0
   '@types/hapi__hapi': 20.0.12
@@ -323,6 +325,12 @@ packages:
       '@hapi/hoek': 9.3.0
     dev: false
 
+  /@hapi/ammo/6.0.0:
+    resolution: {integrity: sha512-lhX7SYtWScQaeAIL5XnE54WzyDgS5RXVeEtFEovyZcTdVzTYbo0nem56Bwko1PBcRxRUIw1v2tMb6sjFs6vEwg==}
+    dependencies:
+      '@hapi/hoek': 10.0.1
+    dev: false
+
   /@hapi/b64/5.0.0:
     resolution: {integrity: sha512-ngu0tSEmrezoiIaNGG6rRvKOUkUuDdf4XTPnONHGYfSGRmDqPZX5oJL6HAdKTo1UQHECbdB4OzhWrfgVppjHUw==}
     dependencies:
@@ -463,6 +471,17 @@ packages:
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
     dev: false
 
+  /@hapi/inert/7.0.0:
+    resolution: {integrity: sha512-aJvH8rKYF42YY/XZLtq5LOWyk71GRIlcqRgvRyz+XQnj2DTdSZeerUcsxV2kyzJVm9gdemVwHp00foLfKadbMg==}
+    dependencies:
+      '@hapi/ammo': 6.0.0
+      '@hapi/boom': 10.0.0
+      '@hapi/bounce': 3.0.0
+      '@hapi/hoek': 10.0.1
+      '@hapi/validate': 2.0.0
+      lru-cache: 7.14.1
+    dev: false
+
   /@hapi/iron/6.0.0:
     resolution: {integrity: sha512-zvGvWDufiTGpTJPG1Y/McN8UqWBu0k/xs/7l++HVU535NLHXsHhy54cfEMdW7EjwKfbBfM9Xy25FmTiobb7Hvw==}
     dependencies:
@@ -570,11 +589,24 @@ packages:
       '@hapi/hoek': 9.3.0
     dev: false
 
+  /@hapi/topo/6.0.0:
+    resolution: {integrity: sha512-aorJvN1Q1n5xrZuA50Z4X6adI6VAM2NalIVm46ALL9LUvdoqhof3JPY69jdJH8asM3PsWr2SUVYzp57EqUP41A==}
+    dependencies:
+      '@hapi/hoek': 10.0.1
+    dev: false
+
   /@hapi/validate/1.1.3:
     resolution: {integrity: sha512-/XMR0N0wjw0Twzq2pQOzPBZlDzkekGcoCtzO314BpIEsbXdYGthQUbxgkGDf4nhk1+IPDAsXqWjMohRQYO06UA==}
     dependencies:
       '@hapi/hoek': 9.3.0
       '@hapi/topo': 5.1.0
+    dev: false
+
+  /@hapi/validate/2.0.0:
+    resolution: {integrity: sha512-w5m8MvBgqGndbMIB+AWmXTb8CLtF1DlIxbnbAHNAo7aFuNQuI1Ywc2e0zDLK5fbFXDoqRzNrHnC7JjNJ+hDigw==}
+    dependencies:
+      '@hapi/hoek': 10.0.1
+      '@hapi/topo': 6.0.0
     dev: false
 
   /@hapi/vise/4.0.0:
@@ -1465,6 +1497,11 @@ packages:
 
   /lodash/4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+
+  /lru-cache/7.14.1:
+    resolution: {integrity: sha512-ysxwsnTKdAx96aTRdhDOCQfDgbHnt8SK0KY8SEjO0wHinhWOFTESbjVCMPbU1uGXg/ch4lifqx0wfjOawU2+WA==}
+    engines: {node: '>=12'}
+    dev: false
 
   /make-error/1.3.6:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}

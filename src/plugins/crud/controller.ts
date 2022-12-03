@@ -102,8 +102,10 @@ class Controller {
         ).map((field) => {
             // 处理 component
             const component = this.config.component(field.name)
+            // 处理 alias
+            const alias = this.config.alias(field.name)
 
-            return { ...field, component }
+            return { ...field, component, alias }
         })
         // 创建和修改时过滤 id
         if (actions === 'create' || actions === 'update') {
