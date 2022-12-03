@@ -7,10 +7,15 @@ import { password } from '../controllers/password'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
+import Controller from './crud/controller'
+
+type Actions = 'create' | 'list' | 'update' | 'delete' | 'read'
+
+type Visible = Partial<Record<Actions, boolean>>
 
 type PropertyConfig = {
     /** field visible in frontend */
-    visible?: boolean
+    visible?: boolean | Visible
     /** format field value in frontend */
     format?: (v?: string) => string
     /** field alias */
@@ -38,28 +43,54 @@ interface ActionConfig {
     ) => ActionBody<RequestPayload> | Promise<ActionBody<RequestPayload>>
 }
 
-type Config = {
+type FieldsConfig = {
     property: {
         [key: string]: PropertyConfig
     }
     actions?: ActionConfig
 }
 
+class ConfigHelper {
+    config: FieldsConfig
+    constructor(config: FieldsConfig) {
+        this.config = config
+    }
+    excludeKeys(actions?: Actions): string[] {
+        const properties = this.config.property
+        return _.chain(properties)
+            .keys()
+            .filter((key: string) => {
+                const property = properties[key]
+                if (property.visible && actions) {
+                    return property.visible?.[actions] === false
+                }
+
+                return property.visible === false
+            })
+            .value()
+    }
+}
+
 class Property {
     field: DMMF.Field
-    config: Config
-    constructor(field: DMMF.Field, config: Config) {
+    config: FieldsConfig
+    constructor(field: DMMF.Field, config: FieldsConfig) {
         this.field = field
         this.config = config
     }
     isHidden() {
         return this.config.property[this.field.name]?.visible === false
     }
+    isActionHidden(actions: Actions) {
+        if (this.isHidden()) {
+            return this.isHidden()
+        }
+        return (
+            this.config.property[this.field.name]?.visible?.[actions] === false
+        )
+    }
     isRelation() {
         return Boolean(this.field.relationName)
-    }
-    viewFilter() {
-        return !this.isHidden() && !this.isRelation()
     }
     alias() {
         return this.config.property[this.field.name]?.alias
@@ -96,27 +127,22 @@ const localUploadProvider = async (filesMap: { [key: string]: any }) => {
     return r
 }
 
-function handler(model: DMMF.Model, config: Config) {
+function handler(model: DMMF.Model, config: FieldsConfig) {
     const collection = model.name.toLowerCase()
 
     const map = new Map()
 
-    const fields = model.fields
-        .map((i) => {
-            const property = new Property(i, config)
-            map.set(i.name, property)
-            if (property.alias()) {
-                i.alias = property.alias()
-            }
-            return i
-        })
-        .filter((i) => {
-            if (map.has(i.name)) {
-                const property = map.get(i.name)
-                return property.viewFilter()
-            }
-            return true
-        })
+    const fields = model.fields.map((i) => {
+        const property = new Property(i, config)
+        map.set(i.name, property)
+        if (property.alias()) {
+            i.alias = property.alias()
+        }
+        return i
+    })
+
+    const controller = new Controller(model, config)
+    controller.head()
 
     const validate = joi.object(
         model.fields.reduce((prev, acc) => {
@@ -162,11 +188,7 @@ function handler(model: DMMF.Model, config: Config) {
             path: `/admin/${collection}/{id}`,
             handler: async (request, h) => {
                 const { id } = request.params
-                return prisma[collection].findUnique({
-                    where: {
-                        id,
-                    },
-                })
+                return controller.read(id)
             },
         },
 
@@ -260,18 +282,40 @@ function handler(model: DMMF.Model, config: Config) {
                         }, {}),
                 })
                 const count = await prisma[collection].count()
+                /**
+                 * filter visible is false or visible.list is false
+                 * call format method on value
+                 */
+                console.log(fields)
                 return {
                     list: list.map((i) => {
                         return Object.keys(i).reduce((prev, acc) => {
-                            const property = config.property[acc]
-                            if (typeof property === 'object') {
-                                // format
-                                if (property.format) {
-                                    prev[acc] = (
-                                        config.property[acc] as any
-                                    ).format(i[acc])
+                            const field = fields.find(
+                                (field) => field.name === acc
+                            )
+                            if (field) {
+                                const property = new Property(field, config)
+                                console.log(property)
+
+                                if (
+                                    property.isHidden() ||
+                                    property.isActionHidden('list')
+                                ) {
+                                    delete prev[acc]
+                                    return prev
                                 }
                             }
+
+                            // if (typeof property === 'object') {
+                            //     if (property) {
+                            //     }
+                            //     // // format
+                            //     // if (property.format) {
+                            //     //     prev[acc] = (
+                            //     //         config.property[acc] as any
+                            //     //     ).format(i[acc])
+                            //     // }
+                            // }
 
                             return prev
                         }, i as any)
@@ -283,16 +327,9 @@ function handler(model: DMMF.Model, config: Config) {
         {
             method: 'GET',
             path: `/admin/${collection}`,
-            handler: async () => {
-                return {
-                    fields: fields.map((i) => {
-                        if (i.kind === 'enum') {
-                            i.enumMap = dmmf.datamodelEnumMap[i.type]
-                        }
-                        return i
-                    }),
-                    config,
-                }
+            handler: (request: Hapi.Request) => {
+                const { type } = request.query
+                return controller.head(type)
             },
         },
     ]
@@ -302,7 +339,7 @@ const dmmf = (prisma as any)._baseDmmf
 
 type PluginOption = {
     model: DMMF.Model
-    config: Config
+    config: FieldsConfig
 }
 
 const plugin = {
@@ -346,7 +383,10 @@ const plugin = {
                             },
                         },
                         password: {
-                            visible: false,
+                            visible: {
+                                list: false,
+                                read: false,
+                            },
                         },
                     },
                     actions: {
