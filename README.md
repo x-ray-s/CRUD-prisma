@@ -1,10 +1,21 @@
 ## Feature
 
 - Primsa Mongodb Schema
+  - model field scalar types
+    - [x] String
+    - [x] Boolean
+    - [x] Int
+    - [x] BigInt
+    - [x] Float
+    - [x] DateTime
+    - [x] Json
+    - [ ] Bytes
+    - [ ] Decimal
   - enums
 - Hapijs server
   - JWT Auth
   - CRUD RESTful API
+  - Upload Image Files
 - Vue frontend
   - CRUD Dashboard
 - Daisyui

@@ -95,3 +95,23 @@ model Admin {
     password String
     avatar String?
 }
+
+model Post {
+    id String @id @default(auto()) @map("_id") @db.ObjectId 
+    uid String
+    title String
+    text String
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}
+
+model Types {
+   id String @id @default(auto()) @map("_id") @db.ObjectId
+   string String
+   boolean Boolean
+   int Int
+   bigint BigInt
+   float Float
+   datetime DateTime
+   json Json
+}

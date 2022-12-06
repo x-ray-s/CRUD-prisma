@@ -67,6 +67,13 @@ const localUploadProvider = async (filesMap: {
     return r
 }
 
+const stringify = (data) => {
+    return JSON.stringify(
+        data,
+        (key, value) => (typeof value === 'bigint' ? value.toString() : value) // return everything else unchanged
+    )
+}
+
 function handler(model: DMMF.Model, config: FieldsConfig) {
     const collection = model.name.toLowerCase()
 
@@ -88,17 +95,65 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 chain = joi.any()
             } else if (acc.type === 'Boolean') {
                 chain = joi.boolean()
-            } else if (acc.type === 'Int' || acc.type === 'DateTime') {
+            } else if (
+                acc.type === 'Int' ||
+                acc.type === 'BigInt' ||
+                acc.type === 'Float'
+            ) {
                 chain = joi.number()
+            } else if (acc.type === 'Json') {
+                chain = joi.object()
+            } else if (acc.type === 'DateTime') {
+                chain = joi.date().timestamp()
             }
 
             if (acc.isList) {
                 chain = joi.array()
             }
 
-            if (acc.isRequired && !acc.hasDefaultValue) {
+            if (acc.isRequired && !acc.hasDefaultValue && !acc.isUpdatedAt) {
                 chain = chain.required()
             }
+
+            if (chain) {
+                prev[key] = chain
+            }
+
+            return prev
+        }, {})
+    )
+
+    const validatePatch = joi.object(
+        model.fields.reduce((prev, acc) => {
+            const key = acc.name
+            let chain: any = joi.string()
+
+            if (acc.isId || acc.relationName) {
+                return prev
+            }
+
+            if (customComponentKeys.includes(acc.name)) {
+                // TODO: Readable validate
+                chain = joi.any()
+            } else if (acc.type === 'Boolean') {
+                chain = joi.boolean()
+            } else if (
+                acc.type === 'Int' ||
+                acc.type === 'BigInt' ||
+                acc.type === 'Float'
+            ) {
+                chain = joi.number()
+            } else if (acc.type === 'Json') {
+                chain = joi.object()
+            } else if (acc.type === 'DateTime') {
+                chain = joi.date().timestamp()
+            }
+
+            if (acc.isList) {
+                chain = joi.array()
+            }
+
+            chain = chain.optional()
 
             if (chain) {
                 prev[key] = chain
@@ -114,7 +169,8 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             path: `/admin/${collection}/{id}`,
             handler: async (request, h) => {
                 const { id } = request.params
-                return controller.read(id)
+                const data = await controller.read(id)
+                return stringify(data)
             },
         },
         {
@@ -178,6 +234,11 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         {
             method: 'PATCH',
             path: `/admin/${collection}/{id}`,
+            options: {
+                validate: {
+                    payload: validatePatch,
+                },
+            },
             handler: async (request, h) => {
                 const { id } = request.params
                 await controller.update(id, request.payload)
@@ -202,10 +263,11 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
                 const { page = 1 } = request.query
                 const size = 10
 
-                return await controller.list({
+                const data = await controller.list({
                     page,
                     size,
                 })
+                return stringify(data)
             },
         },
         {
@@ -287,6 +349,22 @@ const plugin = {
                             }
                         },
                     },
+                },
+            },
+            {
+                model: dmmf.modelMap.Post,
+                config: {
+                    property: {
+                        text: {
+                            component: 'quill',
+                        },
+                    },
+                },
+            },
+            {
+                model: dmmf.modelMap.Types,
+                config: {
+                    property: {},
                 },
             },
         ]

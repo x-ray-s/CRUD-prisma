@@ -15,7 +15,7 @@ export type PropertyConfig = {
     /**
      * render upload component in frontend
      */
-    component?: 'upload'
+    component?: 'upload' | 'quill'
 }
 
 interface RequestPayload {
@@ -120,5 +120,8 @@ export class Property {
     }
     isUpload() {
         return this.config.property[this.field.name]?.component === 'upload'
+    }
+    isQuill() {
+        return this.config.property[this.field.name]?.component === 'quill'
     }
 }
