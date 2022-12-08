@@ -15,6 +15,8 @@
     - [x] `?` modifier
     - [x] `[]` modifier
   - enums
+  - attributes
+    - [x] `@default`
 - Hapijs server
   - JWT Auth
   - CRUD RESTful API

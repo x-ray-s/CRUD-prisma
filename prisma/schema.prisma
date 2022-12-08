@@ -121,3 +121,11 @@ model Modifier {
     optional String?
     list String[]
 }
+
+model Attributes {
+   id String @id @default(auto()) @map("_id") @db.ObjectId 
+   string String @default("1")
+   date DateTime @default("2020-03-19T14:21:00+02:00")
+   enums Role @default(ADMIN)
+   optional String @default("a")
+}

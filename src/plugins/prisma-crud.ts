@@ -113,7 +113,9 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             if (acc.isRequired && !acc.hasDefaultValue && !acc.isUpdatedAt) {
                 chain = chain.required()
             } else {
-                chain = chain.allow('')
+                if (acc.type === 'String') {
+                    chain = chain.allow('')
+                }
             }
 
             if (chain) {
@@ -370,6 +372,12 @@ const plugin = {
             },
             {
                 model: dmmf.modelMap.Modifier,
+                config: {
+                    property: {},
+                },
+            },
+            {
+                model: dmmf.modelMap.Attributes,
                 config: {
                     property: {},
                 },
