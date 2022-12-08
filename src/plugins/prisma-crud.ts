@@ -66,7 +66,6 @@ const localUploadProvider = async (filesMap: {
     )
     return r
 }
-
 const stringify = (data) => {
     return JSON.stringify(
         data,
@@ -113,6 +112,8 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
 
             if (acc.isRequired && !acc.hasDefaultValue && !acc.isUpdatedAt) {
                 chain = chain.required()
+            } else {
+                chain = chain.allow('')
             }
 
             if (chain) {
@@ -363,6 +364,12 @@ const plugin = {
             },
             {
                 model: dmmf.modelMap.Types,
+                config: {
+                    property: {},
+                },
+            },
+            {
+                model: dmmf.modelMap.Modifier,
                 config: {
                     property: {},
                 },

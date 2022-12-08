@@ -115,3 +115,9 @@ model Types {
    datetime DateTime
    json Json
 }
+
+model Modifier {
+    id String @id @default(auto()) @map("_id") @db.ObjectId
+    optional String?
+    list String[]
+}

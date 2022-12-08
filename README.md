@@ -11,6 +11,9 @@
     - [x] Json
     - [ ] Bytes
     - [ ] Decimal
+  - modifier
+    - [x] `?` modifier
+    - [x] `[]` modifier
   - enums
 - Hapijs server
   - JWT Auth
