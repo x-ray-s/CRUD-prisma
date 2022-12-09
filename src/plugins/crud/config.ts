@@ -27,17 +27,32 @@ type ActionBody<T> = {
     isValid: boolean
 }
 
-interface ActionConfig {
-    create?: (
-        payload: RequestPayload
-    ) => ActionBody<RequestPayload> | Promise<ActionBody<RequestPayload>>
+interface ActionFunction {
+    (payload: RequestPayload):
+        | ActionBody<RequestPayload>
+        | Promise<ActionBody<RequestPayload>>
+}
+
+export type Operate = 'read' | 'write' | 'delete'
+
+export type JWTCredentials = {
+    iat: number
+    exp: number
+    id: string
+    role: string
+    [key: string]: unknown
+}
+
+interface PermissionsFunction {
+    (auth?: JWTCredentials): boolean | Promise<boolean>
 }
 
 export type FieldsConfig = {
     property: {
         [key: string]: PropertyConfig
     }
-    actions?: ActionConfig
+    actions?: Partial<Record<Actions, ActionFunction>>
+    permissions?: Partial<Record<Operate, PermissionsFunction | boolean>>
 }
 
 export class Configuration {
@@ -79,6 +94,10 @@ export class Configuration {
 
     getActions() {
         return this.config.actions || {}
+    }
+
+    getPermissions() {
+        return this.config.permissions || {}
     }
 
     componentKeys() {

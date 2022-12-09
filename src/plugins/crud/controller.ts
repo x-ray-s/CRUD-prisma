@@ -2,7 +2,7 @@ import _ from 'lodash'
 import { DMMF } from '@prisma/client/runtime'
 import { prisma } from '../../services/prisma'
 import { Configuration } from './config'
-import type { FieldsConfig, Actions } from './config'
+import type { FieldsConfig, Actions, Operate, JWTCredentials } from './config'
 
 const dmmf = (prisma as any)._baseDmmf
 
@@ -121,6 +121,16 @@ class Controller {
             fields,
             config: this._config,
         }
+    }
+    async authority(operate: Operate, auth?: JWTCredentials) {
+        const operation = this.config.getPermissions()[operate]
+        if (typeof operation === 'boolean') {
+            return operation
+        }
+        if (typeof operation === 'function') {
+            return await operation(auth)
+        }
+        return true
     }
 }
 

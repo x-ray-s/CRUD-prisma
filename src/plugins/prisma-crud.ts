@@ -9,29 +9,7 @@ import fs from 'fs'
 import crypto from 'crypto'
 import Controller from './crud/controller'
 import { Configuration } from './crud/config'
-import type { PropertyConfig } from './crud/config'
-
-type ActionBody<T> = {
-    payload: T
-    isValid: boolean
-}
-
-interface RequestPayload {
-    [key: string]: string
-}
-
-interface ActionConfig {
-    create?: (
-        payload: RequestPayload
-    ) => ActionBody<RequestPayload> | Promise<ActionBody<RequestPayload>>
-}
-
-type FieldsConfig = {
-    property: {
-        [key: string]: PropertyConfig
-    }
-    actions?: ActionConfig
-}
+import type { FieldsConfig, JWTCredentials, Operate } from './crud/config'
 
 const localUploadProvider = async (filesMap: {
     [key: string]: any
@@ -170,7 +148,12 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         {
             method: 'GET',
             path: `/admin/${collection}/{id}`,
+            options: {
+                auth: 'jwt',
+            },
             handler: async (request, h) => {
+                const auth = request.auth.credentials
+
                 const { id } = request.params
                 const data = await controller.read(id)
                 return stringify(data)
@@ -180,6 +163,7 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             method: 'POST',
             path: `/admin/${collection}/upload`,
             options: {
+                auth: 'jwt',
                 validate: {
                     payload: validate,
                     failAction: async (request, h, err) => {
@@ -220,6 +204,7 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             method: 'POST',
             path: `/admin/${collection}`,
             options: {
+                auth: 'jwt',
                 validate: {
                     payload: validate,
                     failAction: async (request, h, err) => {
@@ -238,6 +223,7 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
             method: 'PATCH',
             path: `/admin/${collection}/{id}`,
             options: {
+                auth: 'jwt',
                 validate: {
                     payload: validatePatch,
                 },
@@ -252,6 +238,9 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         {
             method: 'DELETE',
             path: `/admin/${collection}/{id}`,
+            options: {
+                auth: 'jwt',
+            },
             handler: async (request, h) => {
                 const { id } = request.params
                 await controller.delete(id)
@@ -262,6 +251,9 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         {
             method: 'GET',
             path: `/admin/${collection}_list`,
+            options: {
+                auth: 'jwt',
+            },
             handler: async (request, h) => {
                 const { page = 1 } = request.query
                 const size = 10
@@ -276,9 +268,33 @@ function handler(model: DMMF.Model, config: FieldsConfig) {
         {
             method: 'GET',
             path: `/admin/${collection}`,
-            handler: (request: Hapi.Request) => {
+            options: {
+                auth: 'jwt',
+            },
+            handler: async (request: Hapi.Request) => {
                 const { type } = request.query
+                const data = await controller.head(type)
+
                 return controller.head(type)
+            },
+        },
+        {
+            method: 'GET',
+            path: `/admin/authority/${collection}`,
+            options: {
+                auth: 'jwt',
+            },
+            handler: async (request: Hapi.Request) => {
+                const operates: Operate[] = ['read', 'write', 'delete']
+                const auth = request.auth.credentials as JWTCredentials
+                const data = await Promise.all(
+                    operates.map((action) => controller.authority(action, auth))
+                )
+                return data.reduce((prev, acc, index) => {
+                    const key = operates[index]
+                    prev[key] = acc
+                    return prev
+                }, {})
             },
         },
     ]
@@ -380,6 +396,20 @@ const plugin = {
                 model: dmmf.modelMap.Attributes,
                 config: {
                     property: {},
+                    actions: {
+                        create() {
+                            return {
+                                payload: {},
+                                isValid: false,
+                            }
+                        },
+                    },
+                    permissions: {
+                        delete: false,
+                        write(auth) {
+                            return auth?.role === 'ADMIN'
+                        },
+                    },
                 },
             },
         ]

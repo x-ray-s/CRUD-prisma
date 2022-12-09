@@ -17,8 +17,12 @@
   - enums
   - attributes
     - [x] `@default`
+    - [ ] `@relation`
+  - functions
+    - [x] `now()`
 - Hapijs server
   - JWT Auth
+  - Authority(permission)
   - CRUD RESTful API
   - Upload Image Files
 - Vue frontend
@@ -29,8 +33,14 @@
 
 - Datetime Select
 - Select
+- Json Editor
+- Rich Editor
 
 ## Todo List
+
+- crud api permission
+- mongodb schema type
+- relation field
 
 ## Types
 

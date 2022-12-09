@@ -28,6 +28,14 @@ server.route({
     },
 })
 
+server.route({
+    method: 'GET',
+    path: '/401',
+    handler: (request, h) => {
+        return h.response({}).code(401)
+    },
+})
+
 const start = async () => {
     await server.register([...plugins, inert, router])
 
